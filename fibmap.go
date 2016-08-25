@@ -169,6 +169,21 @@ func (f FibmapFile) Fiemap(size uint32) ([]Extent, syscall.Errno) {
 	return extents[1 : 1+t.Mapped_extents], err
 }
 
+func Fiemap(fd uintptr, start, length uint64, size uint32) ([]Extent, syscall.Errno) {
+	extents := make([]Extent, size+1)
+	ptr := unsafe.Pointer(uintptr(unsafe.Pointer(&extents[1])) - FiemapSize)
+
+	t := (*fiemap)(ptr)
+	t.Start = start
+	t.Length = length
+	t.Flags = FIEMAP_FLAG_SYNC
+	t.Extent_count = size
+
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, fd, FS_IOC_FIEMAP, uintptr(ptr))
+
+	return extents[1 : 1+t.Mapped_extents], err
+}
+
 // call FIGETBSZ ioctl
 func (f FibmapFile) Figetbsz() (int, syscall.Errno) {
 	bsz := int(0)
